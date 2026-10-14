@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#171717" />
+  <title>NUSASTICH | Target Tracker</title>
+  <style>
+    :root {
+      --bg: #f5f4f1;
+      --card: #ffffff;
+      --ink: #20201e;
+      --muted: #77766f;
+      --line: #e8e6df;
+      --accent: #9b7948;
+      --accent-soft: #f1e8d9;
+      --green: #277451;
+      --red: #b44848;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .wrap { width: min(100% - 32px, 1080px); margin: 0 auto; padding: 34px 0 52px; }
+    header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 28px; }
+    .eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .19em; color: var(--accent); text-transform: uppercase; }
+    h1 { font-size: clamp(28px, 5vw, 44px); letter-spacing: -.045em; margin: 8px 0 8px; line-height: 1.05; }
+    .sub { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+    .live { display: inline-flex; align-items: center; gap: 7px; padding: 8px 11px; border: 1px solid var(--line); background: white; border-radius: 999px; font-size: 12px; white-space: nowrap; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+    .stat, .panel { background: var(--card); border: 1px solid var(--line); border-radius: 16px; }
+    .stat { padding: 20px; min-width: 0; }
+    .stat-label { color: var(--muted); font-size: 11px; letter-spacing: .09em; font-weight: 750; text-transform: uppercase; }
+    .stat-value { margin-top: 10px; font-size: clamp(20px, 3vw, 29px); font-weight: 750; letter-spacing: -.04em; overflow-wrap: anywhere; }
+    .stat-note { color: var(--muted); font-size: 12px; margin-top: 7px; }
+    .panel { overflow: hidden; }
+    .panel-head { padding: 20px 22px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border-bottom: 1px solid var(--line); }
+    h2 { font-size: 17px; margin: 0; letter-spacing: -.02em; }
+    .search { width: min(100%, 230px); border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 10px 12px; font: inherit; font-size: 13px; outline: none; }
+    .search:focus { border-color: var(--accent); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 650px; }
+    th { padding: 13px 22px; text-align: left; color: var(--muted); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; font-weight: 800; background: #fbfaf8; }
+    td { padding: 16px 22px; border-top: 1px solid var(--line); font-size: 13px; }
+    tbody tr:hover { background: #fcfbf8; }
+    .name { font-weight: 700; }
+    .money { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .progress-cell { min-width: 150px; }
+    .progress-top { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; margin-bottom: 7px; }
+    .progress-top span:last-child { color: var(--muted); }
+    .track { height: 6px; border-radius: 99px; background: #eeeae2; overflow: hidden; }
+    .fill { height: 100%; background: var(--accent); border-radius: inherit; }
+    .complete .fill { background: var(--green); }
+    .status { display: inline-block; padding: 5px 8px; border-radius: 999px; background: var(--accent-soft); color: #795b30; font-size: 10px; font-weight: 800; white-space: nowrap; }
+    .complete .status { background: #e1f1e8; color: var(--green); }
+    .empty, .message { padding: 28px 22px; text-align: center; color: var(--muted); font-size: 13px; }
+    .footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 11px; padding: 15px 3px 0; }
+    .error { color: var(--red); }
+    @media (max-width: 680px) {
+      .wrap { width: min(100% - 22px, 1080px); padding-top: 25px; }
+      header { display: block; }
+      .live { margin-top: 15px; }
+      .stats { grid-template-columns: 1fr 1fr; gap: 9px; }
+      .stat { padding: 15px; }
+      .stat:first-child { grid-column: 1 / -1; }
+      .panel-head { padding: 16px; align-items: flex-start; flex-direction: column; }
+      .search { width: 100%; }
+      th, td { padding-left: 15px; padding-right: 15px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div>
+        <div class="eyebrow">NusaStich XI DPB • TEFA Sekolah</div>
+        <h1>Target Tracker<span style="color:var(--accent)">.</span></h1>
+        <p class="sub">Pantau pencapaian pendapatan bersih setiap anggota secara terbuka.</p>
+      </div>
+      <div class="live"><span class="dot"></span><span id="lastUpdated">Menyiapkan data…</span></div>
+    </header>
+
+    <section class="stats" aria-label="Ringkasan pencapaian">
+      <article class="stat">
+        <div class="stat-label">Total pendapatan bersih</div>
+        <div class="stat-value" id="totalEarned">—</div>
+        <div class="stat-note" id="overallNote">Menunggu data spreadsheet</div>
+      </article>
+      <article class="stat">
+        <div class="stat-label">Total target</div>
+        <div class="stat-value" id="totalTarget">—</div>
+        <div class="stat-note" id="memberCount">0 anggota</div>
+      </article>
+      <article class="stat">
+        <div class="stat-label">Pencapaian keseluruhan</div>
+        <div class="stat-value" id="overallProgress">—</div>
+        <div class="stat-note">Berdasarkan target seluruh anggota</div>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Pencapaian per anggota</h2>
+          <p class="sub" style="margin-top:5px">Target Rp100.000 per orang. Data mengikuti spreadsheet.</p>
+        </div>
+        <input class="search" id="search" type="search" placeholder="Cari nama anggota…" aria-label="Cari nama anggota" />
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>Target</th>
+              <th>Terkumpul</th>
+              <th>Sisa Target</th>
+              <th>Progress</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="rows">
+            <tr><td colspan="6" class="empty">Menghubungkan ke spreadsheet…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="message" class="message" hidden></div>
+    </section>
+    <div class="footer">
+      <span>TEFA • Dashboard transparansi</span>
+      <span>Data diperiksa otomatis setiap 30 detik</span>
+    </div>
+  </main>
+
+  <script>
+    // GANTI URL DI BAWAH dengan URL CSV dari Google Sheets: File > Share > Publish to web > CSV.
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTDWARy0AHYXdxeRNH3GBx8rPQCs5foN6WfO4pvSztqa7dfjGa2qjfhA4f09xhoL4hsdobrNqtXq1wt/pub?gid=0&single=true&output=csv";
+    const DEFAULT_TARGET = 100000;
+    const REFRESH_MS = 30000;
+
+    const rupiah = value => new Intl.NumberFormat("id-ID", {
+      style: "currency", currency: "IDR", maximumFractionDigits: 0
+    }).format(value);
+
+    // Parser CSV sederhana yang juga menangani koma di dalam tanda kutip.
+    function parseCSV(text) {
+      const rows = [];
+      let row = [], cell = "", quoted = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i], next = text[i + 1];
+        if (ch === '"' && quoted && next === '"') { cell += '"'; i++; }
+        else if (ch === '"') quoted = !quoted;
+        else if (ch === "," && !quoted) { row.push(cell.trim()); cell = ""; }
+        else if ((ch === "\n" || ch === "\r") && !quoted) {
+          if (ch === "\r" && next === "\n") i++;
+          row.push(cell.trim());
+          if (row.some(v => v !== "")) rows.push(row);
+          row = []; cell = "";
+        } else cell += ch;
+      }
+      row.push(cell.trim());
+      if (row.some(v => v !== "")) rows.push(row);
+      return rows;
+    }
+
+    function numberFromCell(value) {
+      if (typeof value === "number") return value;
+      // Supports values like 100000, 100.000, Rp100.000, and 100,000.
+      const cleaned = String(value || "").replace(/rp/gi, "").replace(/\s/g, "").replace(/[^\d,.-]/g, "");
+      if (!cleaned) return 0;
+      // Indonesian thousands separators: 100.000 -> 100000.
+      if (/^-?\d{1,3}(\.\d{3})+$/.test(cleaned)) return Number(cleaned.replace(/\./g, ""));
+      if (/^-?\d{1,3}(,\d{3})+$/.test(cleaned)) return Number(cleaned.replace(/,/g, ""));
+      const normalized = cleaned.includes(",") && !cleaned.includes(".") ? cleaned.replace(",", ".") : cleaned;
+      return Number(normalized) || 0;
+    }
+
+    function normalizeHeader(value) {
+      return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
+    function getRecords(csv) {
+      const matrix = parseCSV(csv);
+      if (matrix.length < 2) return [];
+      const headers = matrix[0].map(normalizeHeader);
+      const findColumn = names => headers.findIndex(h => names.includes(h));
+      const nameIndex = findColumn(["nama", "name", "namaanggota"]);
+      const targetIndex = findColumn(["target", "targetbersih", "targetpendapatan"]);
+      const earnedIndex = findColumn(["terkumpul", "pendapatanbersih", "tercapai", "didapat", "hasilbersih", "pendapatan", "earned"]);
+      if (nameIndex < 0 || earnedIndex < 0) {
+        throw new Error("Judul kolom tidak cocok. Baris pertama harus memuat Nama, Target, dan Terkumpul (atau Pendapatan Bersih).");
+      }
+      return matrix.slice(1).map(row => ({
+        name: (row[nameIndex] || "").trim(),
+        target: targetIndex >= 0 && row[targetIndex] !== "" ? numberFromCell(row[targetIndex]) : DEFAULT_TARGET,
+        earned: numberFromCell(row[earnedIndex])
+      })).filter(person => person.name);
+    }
+
+    function render(records) {
+      const totalEarned = records.reduce((sum, p) => sum + p.earned, 0);
+      const totalTarget = records.reduce((sum, p) => sum + p.target, 0);
+      const progress = totalTarget > 0 ? Math.round(totalEarned / totalTarget * 100) : 0;
+      document.getElementById("totalEarned").textContent = rupiah(totalEarned);
+      document.getElementById("totalTarget").textContent = rupiah(totalTarget);
+      document.getElementById("overallProgress").textContent = `${progress}%`;
+      document.getElementById("overallNote").textContent = `${records.length} anggota tercatat`;
+      document.getElementById("memberCount").textContent = `${records.length} anggota`;
+      window.tefaRecords = records;
+      renderRows();
+    }
+
+    function renderRows() {
+      const query = document.getElementById("search").value.toLowerCase().trim();
+      const records = (window.tefaRecords || []).filter(p => p.name.toLowerCase().includes(query));
+      const tbody = document.getElementById("rows");
+      if (!records.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty">${query ? "Nama tidak ditemukan." : "Belum ada data anggota."}</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = records.map(p => {
+        const pct = p.target > 0 ? Math.round(p.earned / p.target * 100) : 0;
+        const done = p.target > 0 && p.earned >= p.target;
+        const width = Math.max(0, Math.min(100, pct));
+        const remaining = Math.max(0, p.target - p.earned);
+        return `<tr class="${done ? "complete" : ""}">
+          <td class="name">${escapeHTML(p.name)}</td>
+          <td class="money">${rupiah(p.target)}</td>
+          <td class="money">${rupiah(p.earned)}</td>
+          <td class="money">${rupiah(remaining)}</td>
+          <td class="progress-cell"><div class="progress-top"><strong>${pct}%</strong><span>${rupiah(Math.max(0, p.target - p.earned))} lagi</span></div><div class="track"><div class="fill" style="width:${width}%"></div></div></td>
+          <td><span class="status">${done ? "TARGET TERCAPAI" : "BERPROSES"}</span></td>
+        </tr>`;
+      }).join("");
+    }
+
+    function escapeHTML(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[char]);
+    }
+
+    let isLoading = false;
+    let lastAcceptedRecords = null;
+    const STORAGE_KEY = "tefaLatestEarnedByName_v1";
+
+    function readSavedEarned() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+        return parsed && typeof parsed === "object" ? parsed : {};
+      } catch (_) {
+        return {};
+      }
+    }
+
+    function mergeWithLatestPerPerson(records) {
+      const savedEarned = readSavedEarned();
+      const previousByName = new Map((lastAcceptedRecords || []).map(p => [p.name, p]));
+      const merged = records.map(person => {
+        const previous = previousByName.get(person.name);
+        const saved = Number(savedEarned[person.name]);
+        const candidates = [person.earned];
+        if (previous && Number.isFinite(previous.earned)) candidates.push(previous.earned);
+        if (Number.isFinite(saved) && saved >= 0) candidates.push(saved);
+        // Anggap pendapatan kumulatif: snapshot CSV yang lebih lama tidak
+        // boleh menurunkan angka yang sudah pernah terlihat di browser ini.
+        return { ...person, earned: Math.max(...candidates) };
+      });
+      const nextSaved = { ...savedEarned };
+      for (const person of merged) nextSaved[person.name] = person.earned;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSaved)); } catch (_) {}
+      return merged;
+    }
+
+    async function loadData() {
+      if (isLoading) return;
+      isLoading = true;
+      const message = document.getElementById("message");
+      if (CSV_URL === "TEMPEL_URL_CSV_GOOGLE_SHEETS_DI_SINI") {
+        document.getElementById("rows").innerHTML = `<tr><td colspan="6" class="empty">Website siap. Tempel URL CSV Google Sheets ke variabel CSV_URL di file index.html.</td></tr>`;
+        document.getElementById("lastUpdated").textContent = "Menunggu URL spreadsheet";
+        return;
+      }
+      try {
+        const response = await fetch(`${CSV_URL}${CSV_URL.includes("?") ? "&" : "?"}_=${Date.now()}-${Math.random().toString(36).slice(2)}`, { cache: "no-store", headers: { "Cache-Control": "no-cache, no-store, max-age=0", "Pragma": "no-cache" } });
+        if (!response.ok) throw new Error("Spreadsheet tidak bisa diakses. Periksa URL dan pengaturan Publish to web.");
+        const csv = await response.text();
+        const records = getRecords(csv);
+        if (!records.length) throw new Error("Data spreadsheet kosong. Data terakhir tetap ditampilkan.");
+        if (records.length < 10) throw new Error("Data CSV terlihat tidak lengkap. Data terakhir tetap ditampilkan.");
+        const mergedRecords = mergeWithLatestPerPerson(records);
+        lastAcceptedRecords = mergedRecords.map(p => ({ ...p }));
+        render(mergedRecords);
+        document.getElementById("lastUpdated").textContent = `Diperbarui ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`;
+        message.hidden = true;
+      } catch (error) {
+        message.hidden = false;
+        message.className = "message error";
+        message.textContent = error.message || "Data gagal dimuat. Data terakhir tetap ditampilkan.";
+        document.getElementById("lastUpdated").textContent = "Gagal memperbarui";
+      } finally {
+        isLoading = false;
+      }
+    }
+
+    document.getElementById("search").addEventListener("input", renderRows);
+    loadData();
+    setInterval(loadData, REFRESH_MS);
+  </script>
+</body>
+</html>
